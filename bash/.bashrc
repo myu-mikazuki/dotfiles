@@ -114,6 +114,14 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
+
+# WezTerm用: 現在ディレクトリを通知する
+function __wezterm_set_cwd() {
+  printf "\033]7;file://%s%s\033\\" "$HOSTNAME" "$PWD"
+}
+
+PROMPT_COMMAND="__wezterm_set_cwd;$PROMPT_COMMAND"
+
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="/opt/vim/bin:$PATH"
 . "/home/yuzu/.deno/env"
