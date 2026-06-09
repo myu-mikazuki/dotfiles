@@ -126,3 +126,6 @@ export PATH="$HOME/.local/bin:$PATH"
 export PATH="/opt/vim/bin:$PATH"
 [ -d "$HOME/.deno/bin" ] && export PATH="$HOME/.deno/bin:$PATH"
 USERPROFILE=$(wslpath "$(cmd.exe /c echo %USERPROFILE% 2>/dev/null | tr -d '\r')")
+
+# ros commant
+source /opt/ros/jazzy/setup.bash
