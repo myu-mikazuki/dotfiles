@@ -129,3 +129,6 @@ USERPROFILE=$(wslpath "$(cmd.exe /c echo %USERPROFILE% 2>/dev/null | tr -d '\r')
 
 # ros commant
 source /opt/ros/jazzy/setup.bash
+# ros turtlebot3
+export TURTLEBOT3_MODEL=waffle_pi
+export GAZEBO_MODEL_PATH="$GAZEBO_MDEL_PATH:/opt/ros/jazzy/share/turtlebot3_gazebo/models"
