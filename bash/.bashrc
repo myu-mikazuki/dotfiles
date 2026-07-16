@@ -123,9 +123,42 @@ function __wezterm_set_cwd() {
 PROMPT_COMMAND="__wezterm_set_cwd;$PROMPT_COMMAND"
 
 export PATH="$HOME/.local/bin:$PATH"
-export PATH="/opt/vim/bin:$PATH"
+VIM_PREFIX=/opt/vim
+[ -f "$HOME/.vim_prefix" ] && VIM_PREFIX=$(cat "$HOME/.vim_prefix")
+export PATH="$VIM_PREFIX/bin:$PATH"
+unset VIM_PREFIX
 [ -d "$HOME/.deno/bin" ] && export PATH="$HOME/.deno/bin:$PATH"
-USERPROFILE=$(wslpath "$(cmd.exe /c echo %USERPROFILE% 2>/dev/null | tr -d '\r')")
+export USERPROFILE=$(wslpath "$(cmd.exe /c echo %USERPROFILE% 2>/dev/null | tr -d '\r')")
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+if [ -d /opt/flutter ]; then
+    export FLUTTER_ROOT=/opt/flutter
+    export PATH=$PATH:$FLUTTER_ROOT/bin
+fi
+
+if [ -d /usr/lib/jvm/java-17-openjdk-amd64 ]; then
+    export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+    export PATH=$PATH:$JAVA_HOME/bin
+fi
+
+if [ -d "$HOME/Android/SDK" ]; then
+    export ANDROID_HOME="$HOME/Android/SDK"
+    export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+    export PATH=$PATH:$ANDROID_HOME/build-tools
+    export PATH=$PATH:$ANDROID_HOME/platform-tools
+fi
+
+if [ -d /opt/iverilog ]; then
+    export PATH="/opt/iverilog/bin:$PATH"
+fi
+
+if [ -d /opt/verible ]; then
+    export VERIBLE_HOME="/opt/verible"
+    export PATH="/opt/verible/bin:$PATH"
+fi
 
 # ros commant
 source /opt/ros/jazzy/setup.bash
