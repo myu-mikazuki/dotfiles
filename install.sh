@@ -44,10 +44,22 @@ echo bash linked
 
 # WezTerm
 USERPROFILE=$(wslpath "$(cmd.exe /c echo %USERPROFILE% 2>/dev/null | tr -d '\r')")
+if [ -z "$USERPROFILE" ]; then
+    echo "USERPROFILEの取得に失敗しました。WSL環境かどうか確認してください。" >&2
+    exit 1
+fi
 WINCONFIG=$USERPROFILE/.config
 if [ -e $WINCONFIG/wezterm ]; then
-    rm -rf $WINCONFIG/wezterm
-    echo current wezterm config has deleted!
+    if rm -rf $WINCONFIG/wezterm; then
+        echo current wezterm config has deleted!
+    else
+        echo "既存のweztermの設定の削除に失敗しました" >&2
+        exit 1
+    fi
 fi
-    cp -r $CURRENT/wezterm $WINCONFIG
-echo wezterm copyed to $WINCONFIG
+if cp -r $CURRENT/wezterm $WINCONFIG; then
+    echo wezterm copyed to $WINCONFIG
+else
+    echo "weztermの設定のコピーに失敗しました" >&2
+    exit 1
+fi
