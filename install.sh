@@ -107,15 +107,36 @@ if "$BUILD_VIM"; then
         # cache sudo credentials before any background jobs run sudo
         sudo -v
 
-        step "Updating package lists ..." \
-            sudo apt-get update -qq
+        # --- package manager detection (Debian系 / RHEL系) ---
+        if command -v apt-get &>/dev/null; then
+            PKG_UPDATE=(sudo apt-get update -qq)
+            PKG_INSTALL=(sudo apt-get install -y --no-install-recommends
+                build-essential git gettext unzip
+                libncurses-dev libx11-dev libxt-dev
+                libpython3-dev python3-dev
+                lua5.4 liblua5.4-dev)
+        elif command -v dnf &>/dev/null; then
+            PKG_UPDATE=(sudo dnf makecache -q)
+            PKG_INSTALL=(sudo dnf install -y
+                gcc gcc-c++ make git gettext unzip
+                ncurses-devel libX11-devel libXt-devel
+                python3-devel
+                lua lua-devel)
+        elif command -v yum &>/dev/null; then
+            PKG_UPDATE=(sudo yum makecache -q)
+            PKG_INSTALL=(sudo yum install -y
+                gcc gcc-c++ make git gettext unzip
+                ncurses-devel libX11-devel libXt-devel
+                python3-devel
+                lua lua-devel)
+        else
+            echo "サポートされていないパッケージマネージャです（apt-get/dnf/yumが見つかりません）" >&2
+            exit 1
+        fi
 
-        step "Installing build dependencies ..." \
-            sudo apt-get install -y --no-install-recommends \
-                build-essential git gettext unzip \
-                libncurses-dev libx11-dev libxt-dev \
-                libpython3-dev python3-dev \
-                lua5.4 liblua5.4-dev
+        step "Updating package lists ..." "${PKG_UPDATE[@]}"
+
+        step "Installing build dependencies ..." "${PKG_INSTALL[@]}"
 
         BUILD_DIR=$(mktemp -d)
         trap 'rm -rf "$BUILD_DIR"' EXIT
