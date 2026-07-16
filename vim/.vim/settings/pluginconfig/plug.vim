@@ -7,10 +7,16 @@ Plug 'prabirshrestha/asyncomplete-lsp.vim'
 Plug 'prabirshrestha/vim-lsp'
 Plug 'mattn/vim-lsp-settings'
 
-Plug 'piec/vim-lsp-clangd'
+" C言語LSP: clangd
+if executable('clangd')
+    Plug 'piec/vim-lsp-clangd'
+endif
 
-Plug 'vim-denops/denops.vim'
-Plug 'kat0h/bufpreview.vim', { 'do': 'deno task prepare' }
+" bufpreview: deno + wslview（WSLでのブラウザ起動用）
+if executable('deno') && executable('wslview')
+    Plug 'vim-denops/denops.vim'
+    Plug 'kat0h/bufpreview.vim', { 'do': 'deno task prepare' }
+endif
 
 call plug#end()
 
