@@ -7,6 +7,7 @@ set LOG_FILE = "/tmp/dotfiles-install-`date +%Y%m%d-%H%M%S`.log"
 set VIM_ONLY = 0
 set INSTALL_WEZTERM = 0
 set BUILD_VIM = 0
+set SKIP_DEPS = 0
 
 foreach arg ($argv)
     switch ("$arg")
@@ -19,6 +20,9 @@ foreach arg ($argv)
         case --vim:
             set BUILD_VIM = 1
             breaksw
+        case --skip-deps:
+            set SKIP_DEPS = 1
+            breaksw
         case --help:
             cat <<EOF
 使い方: $0:t [オプション]
@@ -28,6 +32,8 @@ foreach arg ($argv)
   --wezterm     WezTermの設定をコピーする（WSL専用）
   --vim         最新安定版のVimをビルド・インストールする
                 （インストール先や、clangd/deno/wslviewの追加インストールを対話形式で確認します）
+  --skip-deps   --vim時のビルド依存パッケージ（build-essential等）のインストールをスキップする
+                （既に依存パッケージが揃っている環境向け。sudoが使えない場合にも利用可能）
   --help        このヘルプを表示する
 EOF
             exit 0
@@ -41,6 +47,8 @@ EOF
   --wezterm     WezTermの設定をコピーする（WSL専用）
   --vim         最新安定版のVimをビルド・インストールする
                 （インストール先や、clangd/deno/wslviewの追加インストールを対話形式で確認します）
+  --skip-deps   --vim時のビルド依存パッケージ（build-essential等）のインストールをスキップする
+                （既に依存パッケージが揃っている環境向け。sudoが使えない場合にも利用可能）
   --help        このヘルプを表示する
 EOF
             exit 1
@@ -150,51 +158,55 @@ if ($BUILD_VIM) then
     if ("$INSTALLED_TAG" == "$LATEST_TAG") then
         printf "  \033[32m✓\033[0m Vim %s already installed, skipping build\n" "$LATEST_TAG"
     else
-        if ("$PKG_MGR" == "") then
-            echo "サポートされていないパッケージマネージャです（apt-get/dnf/yumが見つかりません）"
-            exit 1
-        endif
+        if ($SKIP_DEPS) then
+            printf "  \033[32m✓\033[0m ビルド依存パッケージのインストールをスキップしました (--skip-deps)\n"
+        else
+            if ("$PKG_MGR" == "") then
+                echo "サポートされていないパッケージマネージャです（apt-get/dnf/yumが見つかりません）"
+                exit 1
+            endif
 
-        # cache sudo credentials before long-running steps
-        sudo -v
+            # cache sudo credentials before long-running steps
+            sudo -v
 
-        printf "  Updating package lists ...\n"
-        switch ("$PKG_MGR")
-            case apt:
-                sudo apt-get update -qq >>& "$LOG_FILE"
-                breaksw
-            case dnf:
-                sudo dnf makecache -q >>& "$LOG_FILE"
-                breaksw
-            case yum:
-                sudo yum makecache -q >>& "$LOG_FILE"
-                breaksw
-        endsw
-        if ($status != 0) then
-            printf "  \033[31m✗\033[0m Updating package lists\n"
-            printf "      log: %s\n" "$LOG_FILE"
-            exit 1
-        endif
-        printf "  \033[32m✓\033[0m Updating package lists\n"
+            printf "  Updating package lists ...\n"
+            switch ("$PKG_MGR")
+                case apt:
+                    sudo apt-get update -qq >>& "$LOG_FILE"
+                    breaksw
+                case dnf:
+                    sudo dnf makecache -q >>& "$LOG_FILE"
+                    breaksw
+                case yum:
+                    sudo yum makecache -q >>& "$LOG_FILE"
+                    breaksw
+            endsw
+            if ($status != 0) then
+                printf "  \033[31m✗\033[0m Updating package lists\n"
+                printf "      log: %s\n" "$LOG_FILE"
+                exit 1
+            endif
+            printf "  \033[32m✓\033[0m Updating package lists\n"
 
-        printf "  Installing build dependencies ...\n"
-        switch ("$PKG_MGR")
-            case apt:
-                set PKG_INSTALL = (build-essential git gettext unzip libncurses-dev libx11-dev libxt-dev libpython3-dev python3-dev lua5.4 liblua5.4-dev)
-                sudo apt-get install -y --no-install-recommends $PKG_INSTALL >>& "$LOG_FILE"
-                breaksw
-            case dnf:
-            case yum:
-                set PKG_INSTALL = (gcc gcc-c++ make git gettext unzip ncurses-devel libX11-devel libXt-devel python3-devel lua lua-devel)
-                sudo $PKG_MGR install -y $PKG_INSTALL >>& "$LOG_FILE"
-                breaksw
-        endsw
-        if ($status != 0) then
-            printf "  \033[31m✗\033[0m Installing build dependencies\n"
-            printf "      log: %s\n" "$LOG_FILE"
-            exit 1
+            printf "  Installing build dependencies ...\n"
+            switch ("$PKG_MGR")
+                case apt:
+                    set PKG_INSTALL = (build-essential git gettext unzip libncurses-dev libx11-dev libxt-dev libpython3-dev python3-dev lua5.4 liblua5.4-dev)
+                    sudo apt-get install -y --no-install-recommends $PKG_INSTALL >>& "$LOG_FILE"
+                    breaksw
+                case dnf:
+                case yum:
+                    set PKG_INSTALL = (gcc gcc-c++ make git gettext unzip ncurses-devel libX11-devel libXt-devel python3-devel lua lua-devel)
+                    sudo $PKG_MGR install -y $PKG_INSTALL >>& "$LOG_FILE"
+                    breaksw
+            endsw
+            if ($status != 0) then
+                printf "  \033[31m✗\033[0m Installing build dependencies\n"
+                printf "      log: %s\n" "$LOG_FILE"
+                exit 1
+            endif
+            printf "  \033[32m✓\033[0m Installing build dependencies\n"
         endif
-        printf "  \033[32m✓\033[0m Installing build dependencies\n"
 
         # BUILD_DIR: cshにはEXITトラップが無いため、失敗時の後始末はベストエフォート(/tmpはOSが回収)とする
         set BUILD_DIR = `mktemp -d`

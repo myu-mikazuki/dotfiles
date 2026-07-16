@@ -13,6 +13,8 @@ usage() {
   --wezterm     WezTermの設定をコピーする（WSL専用）
   --vim         最新安定版のVimをビルド・インストールする
                 （インストール先や、clangd/deno/wslviewの追加インストールを対話形式で確認します）
+  --skip-deps   --vim時のビルド依存パッケージ（build-essential等）のインストールをスキップする
+                （既に依存パッケージが揃っている環境向け。sudoが使えない場合にも利用可能）
   --help        このヘルプを表示する
 EOF
 }
@@ -92,12 +94,14 @@ install_wslu() {
 VIM_ONLY=false
 INSTALL_WEZTERM=false
 BUILD_VIM=false
+SKIP_DEPS=false
 
 for arg in "$@"; do
     case "$arg" in
-        --vim-only) VIM_ONLY=true ;;
-        --wezterm)  INSTALL_WEZTERM=true ;;
-        --vim)      BUILD_VIM=true ;;
+        --vim-only)  VIM_ONLY=true ;;
+        --wezterm)   INSTALL_WEZTERM=true ;;
+        --vim)       BUILD_VIM=true ;;
+        --skip-deps) SKIP_DEPS=true ;;
         --help)
             usage
             exit 0
@@ -150,36 +154,40 @@ if "$BUILD_VIM"; then
         # cache sudo credentials before any background jobs run sudo
         sudo -v
 
-        # --- package manager detection (Debian系 / RHEL系) ---
-        if command -v apt-get &>/dev/null; then
-            PKG_UPDATE=(sudo apt-get update -qq)
-            PKG_INSTALL=(sudo apt-get install -y --no-install-recommends
-                build-essential git gettext unzip
-                libncurses-dev libx11-dev libxt-dev
-                libpython3-dev python3-dev
-                lua5.4 liblua5.4-dev)
-        elif command -v dnf &>/dev/null; then
-            PKG_UPDATE=(sudo dnf makecache -q)
-            PKG_INSTALL=(sudo dnf install -y
-                gcc gcc-c++ make git gettext unzip
-                ncurses-devel libX11-devel libXt-devel
-                python3-devel
-                lua lua-devel)
-        elif command -v yum &>/dev/null; then
-            PKG_UPDATE=(sudo yum makecache -q)
-            PKG_INSTALL=(sudo yum install -y
-                gcc gcc-c++ make git gettext unzip
-                ncurses-devel libX11-devel libXt-devel
-                python3-devel
-                lua lua-devel)
+        if $SKIP_DEPS; then
+            ok "ビルド依存パッケージのインストールをスキップしました (--skip-deps)"
         else
-            echo "サポートされていないパッケージマネージャです（apt-get/dnf/yumが見つかりません）" >&2
-            exit 1
+            # --- package manager detection (Debian系 / RHEL系) ---
+            if command -v apt-get &>/dev/null; then
+                PKG_UPDATE=(sudo apt-get update -qq)
+                PKG_INSTALL=(sudo apt-get install -y --no-install-recommends
+                    build-essential git gettext unzip
+                    libncurses-dev libx11-dev libxt-dev
+                    libpython3-dev python3-dev
+                    lua5.4 liblua5.4-dev)
+            elif command -v dnf &>/dev/null; then
+                PKG_UPDATE=(sudo dnf makecache -q)
+                PKG_INSTALL=(sudo dnf install -y
+                    gcc gcc-c++ make git gettext unzip
+                    ncurses-devel libX11-devel libXt-devel
+                    python3-devel
+                    lua lua-devel)
+            elif command -v yum &>/dev/null; then
+                PKG_UPDATE=(sudo yum makecache -q)
+                PKG_INSTALL=(sudo yum install -y
+                    gcc gcc-c++ make git gettext unzip
+                    ncurses-devel libX11-devel libXt-devel
+                    python3-devel
+                    lua lua-devel)
+            else
+                echo "サポートされていないパッケージマネージャです（apt-get/dnf/yumが見つかりません）" >&2
+                exit 1
+            fi
+
+            step "Updating package lists ..." "${PKG_UPDATE[@]}"
+
+            step "Installing build dependencies ..." "${PKG_INSTALL[@]}"
         fi
-
-        step "Updating package lists ..." "${PKG_UPDATE[@]}"
-
-        step "Installing build dependencies ..." "${PKG_INSTALL[@]}"
 
         BUILD_DIR=$(mktemp -d)
         trap 'rm -rf "$BUILD_DIR"' EXIT
