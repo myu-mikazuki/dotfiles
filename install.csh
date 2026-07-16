@@ -121,6 +121,20 @@ if ($BUILD_VIM) then
     endif
     echo "$VIM_PREFIX" > ~/.vim_prefix
 
+    # --- インストール権限の判定 ---
+    # 既存の祖先ディレクトリが書き込み可能ならsudoなしでインストールする
+    set CHECK_DIR = "$VIM_PREFIX"
+    while (! -e "$CHECK_DIR" && "$CHECK_DIR" != "/")
+        set CHECK_DIR = "$CHECK_DIR:h"
+    end
+    set SUDO_INSTALL = "sudo"
+    if (-w "$CHECK_DIR") set SUDO_INSTALL = ""
+    if ("$SUDO_INSTALL" == "") then
+        printf "  \033[32m✓\033[0m %s は書き込み可能なため、sudoなしでインストールします\n" "$VIM_PREFIX"
+    else
+        printf "  %s へのインストールにはsudoが必要です\n" "$VIM_PREFIX"
+    endif
+
     # resolve latest stable tag (vX.Y.Z, no alpha/beta/rc)
     printf "  Resolving latest Vim tag ...\n"
     set LATEST_TAG = `git ls-remote --tags --sort='-v:refname' https://github.com/vim/vim 'v[0-9]*' | grep -v -E '(alpha|beta|rc|\^\{\})' | head -1 | sed 's|.*refs/tags/||'`
@@ -209,7 +223,7 @@ if ($BUILD_VIM) then
         printf "  \033[32m✓\033[0m Building\n"
 
         printf "  Installing to %s ...\n" "$VIM_PREFIX"
-        (cd "$BUILD_DIR" && sudo make install) >>& "$LOG_FILE"
+        (cd "$BUILD_DIR" && $SUDO_INSTALL make install) >>& "$LOG_FILE"
         if ($status != 0) then
             printf "  \033[31m✗\033[0m Installing to %s\n" "$VIM_PREFIX"
             printf "      log: %s\n" "$LOG_FILE"
@@ -217,7 +231,7 @@ if ($BUILD_VIM) then
         endif
         printf "  \033[32m✓\033[0m Installing to %s\n" "$VIM_PREFIX"
 
-        echo "$LATEST_TAG" | sudo tee "$VIM_PREFIX/.installed_tag" > /dev/null
+        echo "$LATEST_TAG" | $SUDO_INSTALL tee "$VIM_PREFIX/.installed_tag" > /dev/null
         source ~/.cshrc
         printf "  \033[32m✓\033[0m Vim %s → %s/bin/vim\n" "$LATEST_TAG" "$VIM_PREFIX"
     endif
