@@ -131,6 +131,7 @@ ok "bash linked"
 # --- build & install vim latest stable ---
 if "$BUILD_VIM"; then
     VIM_PREFIX=$(ask_value "Vimのインストール先" "/opt/vim")
+    echo "$VIM_PREFIX" > "$HOME/.vim_prefix"
 
     # resolve latest stable tag (vX.Y.Z, no alpha/beta/rc)
     printf "  Resolving latest Vim tag ..."

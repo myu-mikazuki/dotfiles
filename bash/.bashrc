@@ -123,7 +123,10 @@ function __wezterm_set_cwd() {
 PROMPT_COMMAND="__wezterm_set_cwd;$PROMPT_COMMAND"
 
 export PATH="$HOME/.local/bin:$PATH"
-export PATH="/opt/vim/bin:$PATH"
+VIM_PREFIX=/opt/vim
+[ -f "$HOME/.vim_prefix" ] && VIM_PREFIX=$(cat "$HOME/.vim_prefix")
+export PATH="$VIM_PREFIX/bin:$PATH"
+unset VIM_PREFIX
 [ -d "$HOME/.deno/bin" ] && export PATH="$HOME/.deno/bin:$PATH"
 export USERPROFILE=$(wslpath "$(cmd.exe /c echo %USERPROFILE% 2>/dev/null | tr -d '\r')")
 

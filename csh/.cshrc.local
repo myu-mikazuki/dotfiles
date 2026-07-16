@@ -6,9 +6,14 @@ if (-d "$HOME/.local/bin") then
     set path = ("$HOME/.local/bin" $path)
 endif
 
-if (-d /opt/vim/bin) then
-    set path = (/opt/vim/bin $path)
+set _vim_prefix = /opt/vim
+if (-f "$HOME/.vim_prefix") then
+    set _vim_prefix = `cat "$HOME/.vim_prefix"`
 endif
+if (-d "$_vim_prefix/bin") then
+    set path = ("$_vim_prefix/bin" $path)
+endif
+unset _vim_prefix
 
 alias ll 'ls -alF'
 alias la 'ls -A'
