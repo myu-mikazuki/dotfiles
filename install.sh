@@ -26,21 +26,36 @@ for arg in "$@"; do
     esac
 done
 
-mkdir -p ~/.config/
-CURRENT=$(cd $(dirname $0);pwd)
+if ! mkdir -p ~/.config/; then
+    echo "~/.config/の作成に失敗しました" >&2
+    exit 1
+fi
+
+CURRENT=$(cd "$(dirname "$0")" && pwd)
+if [ -z "$CURRENT" ]; then
+    echo "スクリプトのディレクトリ取得に失敗しました" >&2
+    exit 1
+fi
 
 # vim
-ln -sf $CURRENT/vim/.vim/ ~/
-ln -sf $CURRENT/vim/.vimrc ~/.vimrc
-echo vim linked
+if ln -sf $CURRENT/vim/.vim/ ~/ && ln -sf $CURRENT/vim/.vimrc ~/.vimrc; then
+    echo vim linked
+else
+    echo "vimの設定のリンクに失敗しました" >&2
+    exit 1
+fi
 
 if [ "$VIM_ONLY" = true ]; then
     exit 0
 fi
 
 # bash
-ln -sf $CURRENT/bash/.bashrc ~/.bashrc
-echo bash linked
+if ln -sf $CURRENT/bash/.bashrc ~/.bashrc; then
+    echo bash linked
+else
+    echo "bashの設定のリンクに失敗しました" >&2
+    exit 1
+fi
 
 # WezTerm
 USERPROFILE=$(wslpath "$(cmd.exe /c echo %USERPROFILE% 2>/dev/null | tr -d '\r')")
