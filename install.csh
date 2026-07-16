@@ -119,14 +119,18 @@ if ($BUILD_VIM) then
         set REPLY = "$<"
         if ("$REPLY" != "") set VIM_PREFIX = "$REPLY"
     endif
+    # $<はチルダ展開しないため、先頭の~を$HOMEに変換する
+    set VIM_PREFIX = `echo "$VIM_PREFIX" | sed "s|^~|$HOME|"`
     echo "$VIM_PREFIX" > ~/.vim_prefix
 
     # --- インストール権限の判定 ---
     # 既存の祖先ディレクトリが書き込み可能ならsudoなしでインストールする
+    # ("/"を含まなくなった時点で打ち切り、無限ループを防ぐ)
     set CHECK_DIR = "$VIM_PREFIX"
-    while (! -e "$CHECK_DIR" && "$CHECK_DIR" != "/")
+    while ("$CHECK_DIR" =~ */* && ! -e "$CHECK_DIR" && "$CHECK_DIR" != "/")
         set CHECK_DIR = "$CHECK_DIR:h"
     end
+    if (! -e "$CHECK_DIR") set CHECK_DIR = "."
     set SUDO_INSTALL = "sudo"
     if (-w "$CHECK_DIR") set SUDO_INSTALL = ""
     if ("$SUDO_INSTALL" == "") then
