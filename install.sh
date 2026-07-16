@@ -1,8 +1,27 @@
+usage() {
+    cat <<EOF
+使い方: $(basename "$0") [オプション]
+
+オプション:
+  --vim-only    vimの設定のみをリンクする
+  --help        このヘルプを表示する
+EOF
+}
+
 VIM_ONLY=false
 for arg in "$@"; do
     case "$arg" in
         --vim-only)
             VIM_ONLY=true
+            ;;
+        --help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "不明なオプションです: $arg" >&2
+            usage
+            exit 1
             ;;
     esac
 done
