@@ -1,14 +1,27 @@
+VIM_ONLY=false
+for arg in "$@"; do
+    case "$arg" in
+        --vim-only)
+            VIM_ONLY=true
+            ;;
+    esac
+done
+
 mkdir -p ~/.config/
 CURRENT=$(cd $(dirname $0);pwd)
-
-# bash
-ln -sf $CURRENT/bash/.bashrc ~/.bashrc
-echo bash linked
 
 # vim
 ln -sf $CURRENT/vim/.vim/ ~/
 ln -sf $CURRENT/vim/.vimrc ~/.vimrc
 echo vim linked
+
+if [ "$VIM_ONLY" = true ]; then
+    exit 0
+fi
+
+# bash
+ln -sf $CURRENT/bash/.bashrc ~/.bashrc
+echo bash linked
 
 # WezTerm
 USERPROFILE=$(wslpath "$(cmd.exe /c echo %USERPROFILE% 2>/dev/null | tr -d '\r')")
