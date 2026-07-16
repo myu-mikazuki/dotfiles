@@ -12,6 +12,7 @@ usage() {
   --vim-only    vimの設定のみをリンクする（bash/wezterm/vimビルドは行わない）
   --wezterm     WezTermの設定をコピーする（WSL専用）
   --vim         最新安定版のVimをビルド・インストールする
+                （インストール先や、clangd/deno/wslviewの追加インストールを対話形式で確認します）
   --help        このヘルプを表示する
 EOF
 }
@@ -45,6 +46,47 @@ step() {
 }
 
 ok() { printf "  \033[32m✓\033[0m %s\n" "$1"; }
+
+ask_yes_no() {
+    local prompt="$1" reply
+    if [ ! -t 0 ]; then
+        return 1
+    fi
+    read -r -p "$prompt [y/N] " reply || return 1
+    [[ "$reply" =~ ^[Yy]$ ]]
+}
+
+ask_value() {
+    local prompt="$1" default="$2" reply
+    if [ ! -t 0 ]; then
+        printf '%s\n' "$default"
+        return 0
+    fi
+    read -r -p "$prompt [$default]: " reply || true
+    printf '%s\n' "${reply:-$default}"
+}
+
+install_clangd() {
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y clangd
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y clang-tools-extra
+    elif command -v yum &>/dev/null; then
+        sudo yum install -y clang-tools-extra
+    else
+        echo "サポートされていないパッケージマネージャです" >&2
+        return 1
+    fi
+}
+
+install_wslu() {
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y wslu
+    else
+        echo "wslu の自動インストールはapt環境のみ対応しています。手動でインストールしてください。" >&2
+        return 1
+    fi
+}
 
 # --- parse options ---
 VIM_ONLY=false
@@ -88,7 +130,7 @@ ok "bash linked"
 
 # --- build & install vim latest stable ---
 if "$BUILD_VIM"; then
-    VIM_PREFIX=/opt/vim
+    VIM_PREFIX=$(ask_value "Vimのインストール先" "/opt/vim")
 
     # resolve latest stable tag (vX.Y.Z, no alpha/beta/rc)
     printf "  Resolving latest Vim tag ..."
@@ -168,15 +210,36 @@ if "$BUILD_VIM"; then
         ok "Vim $LATEST_TAG → $VIM_PREFIX/bin/vim"
     fi
 
-    # --- deno (required for denops.vim / bufpreview.vim) ---
-    if ! command -v deno &>/dev/null && [ ! -x "$HOME/.deno/bin/deno" ]; then
-        step "Installing Deno ..." \
-            bash -c 'curl -fsSL https://deno.land/install.sh | sh'
-        export PATH="$HOME/.deno/bin:$PATH"
-        source ~/.bashrc
-        ok "Deno installed"
+    # --- C言語LSP: clangd ---
+    if command -v clangd &>/dev/null; then
+        ok "clangd already installed"
+    elif ask_yes_no "C言語LSP用にclangdをインストールしますか？"; then
+        step "Installing clangd ..." install_clangd
     else
-        ok "Deno already installed"
+        ok "clangdのインストールをスキップしました"
+    fi
+
+    # --- bufpreview: deno + wslview ---
+    NEED_DENO=true
+    { command -v deno || [ -x "$HOME/.deno/bin/deno" ]; } &>/dev/null && NEED_DENO=false
+    NEED_WSLVIEW=true
+    command -v wslview &>/dev/null && NEED_WSLVIEW=false
+
+    if ! $NEED_DENO && ! $NEED_WSLVIEW; then
+        ok "deno/wslview already installed"
+    elif ask_yes_no "bufpreview機能用にdeno/wslviewをインストールしますか？"; then
+        if $NEED_DENO; then
+            step "Installing Deno ..." \
+                bash -c 'curl -fsSL https://deno.land/install.sh | sh'
+            export PATH="$HOME/.deno/bin:$PATH"
+            source ~/.bashrc
+        fi
+        if $NEED_WSLVIEW; then
+            step "Installing wslu (wslview) ..." install_wslu
+        fi
+        ok "deno/wslview installed"
+    else
+        ok "deno/wslviewのインストールをスキップしました"
     fi
 fi
 
