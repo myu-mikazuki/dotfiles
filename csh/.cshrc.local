@@ -1,0 +1,19 @@
+# ~/.cshrc.local: 環境固有のcsh/tcsh設定
+# ~/.cshrc から次の1行で読み込まれる想定:
+#   if (-f ~/.cshrc.local) source ~/.cshrc.local
+
+if (-d "$HOME/.local/bin") then
+    set path = ("$HOME/.local/bin" $path)
+endif
+
+if (-d /opt/vim/bin) then
+    set path = (/opt/vim/bin $path)
+endif
+
+alias ll 'ls -alF'
+alias la 'ls -A'
+alias l  'ls -CF'
+
+if ($?prompt) then
+    set prompt = "%n@%m:%~%# "
+endif
