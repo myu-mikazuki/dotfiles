@@ -124,5 +124,5 @@ PROMPT_COMMAND="__wezterm_set_cwd;$PROMPT_COMMAND"
 
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="/opt/vim/bin:$PATH"
-. "/home/yuzu/.deno/env"
+[ -s "$HOME/.deno/env" ] && . "$HOME/.deno/env"
 USERPROFILE=$(wslpath "$(cmd.exe /c echo %USERPROFILE% 2>/dev/null | tr -d '\r')")
